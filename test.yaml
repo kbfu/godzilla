@@ -1,0 +1,6 @@
+- - type: pod-delete
+    label:
+    name: delete-cn-pod
+    namespace:
+    interval:
+    duration:

@@ -22,6 +22,5 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: wxt432/chaos-go-runner:${{ github.ref_name }},wxt432/chaos-go-runner:latest
+          tags: wxt432/godzilla-chaos:${{ github.ref_name }},wxt432/godzilla-chaos:latest
           platforms: linux/amd64
-          file: ./build/Dockerfile
