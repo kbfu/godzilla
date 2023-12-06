@@ -9,7 +9,7 @@ import (
 )
 
 func addServiceAccount(namespace string) error {
-	_, err := client.CoreV1().ServiceAccounts("chaos-gjcdi0cp6sl77aj1").Create(context.Background(), &coreV1.ServiceAccount{
+	_, err := client.CoreV1().ServiceAccounts(namespace).Create(context.Background(), &coreV1.ServiceAccount{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name: "chaos-admin",
 			Labels: map[string]string{
@@ -36,7 +36,7 @@ func addRoleBinding(namespace string) error {
 			{
 				Kind:      rbacV1.ServiceAccountKind,
 				Name:      "chaos-admin",
-				Namespace: "chaos-gjcdi0cp6sl77aj1",
+				Namespace: namespace,
 			},
 		},
 		RoleRef: rbacV1.RoleRef{

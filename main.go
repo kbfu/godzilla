@@ -12,5 +12,5 @@ func init() {
 }
 
 func main() {
-	kube.CreateJob()
+	kube.CreateJob("")
 }
