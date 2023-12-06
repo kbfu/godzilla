@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
 	"godzilla/core"
 	"godzilla/kube"
 )
@@ -12,5 +13,8 @@ func init() {
 }
 
 func main() {
-	kube.CreateJob("")
+	err := kube.CreateChaos()
+	if err != nil {
+		logrus.Fatalf("Create chaos failed, reason %s", err.Error())
+	}
 }

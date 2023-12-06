@@ -22,6 +22,10 @@ type podJob struct {
 	Duration  string `yaml:"duration"`
 }
 
+func (chaosJob *ChaosJob) Run() {
+
+}
+
 func CreateChaos() error {
 	var chaosJobs [][]ChaosJob
 	err := filepath.Walk("scenarios", func(path string, info fs.FileInfo, err error) error {
@@ -44,13 +48,16 @@ func CreateChaos() error {
 	for _, parallelJobs := range chaosJobs {
 		for _, j := range parallelJobs {
 			wg.Add(1)
+			j := j
 			go func() {
+				j.Run()
 				// todo need to watch jobs here
 				wg.Done()
 			}()
 		}
 		wg.Wait()
 	}
+	return nil
 	//client.BatchV1().Jobs(namespace).Create(context.Background(), &batchV1.Job{
 	//	TypeMeta:   metaV1.TypeMeta{},
 	//	ObjectMeta: metaV1.ObjectMeta{},
