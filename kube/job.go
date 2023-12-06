@@ -27,7 +27,10 @@ func (chaosJob *ChaosJob) Run() {
 }
 
 func CreateChaos() error {
-	var chaosJobs [][]ChaosJob
+	var (
+		chaosJobs [][]ChaosJob
+		wg        sync.WaitGroup
+	)
 	err := filepath.Walk("scenarios", func(path string, info fs.FileInfo, err error) error {
 		if !info.IsDir() {
 			data, err := os.ReadFile(path)
@@ -44,14 +47,16 @@ func CreateChaos() error {
 	if err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
 	for _, parallelJobs := range chaosJobs {
 		for _, j := range parallelJobs {
 			wg.Add(1)
 			j := j
 			go func() {
 				j.Run()
-				// todo need to watch jobs here
+				// todo need to watch chaos jobs here
+				// todo collect logs to files
+				// todo copy back to github actions worker if needed
+				// todo remove all chaos pods if time elapsed
 				wg.Done()
 			}()
 		}
