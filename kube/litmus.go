@@ -8,6 +8,7 @@ import (
 	batchV1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 )
 
 func (chaosJob *ChaosJob) LitmusJob() batchV1.Job {
@@ -28,8 +29,15 @@ func (chaosJob *ChaosJob) LitmusJob() batchV1.Job {
 		for k, v := range chaosJob.Config {
 			config.Env[k] = v
 		}
+		// allow it to be overridden by env vars
+		for k := range config.Env {
+			if os.Getenv(k) != "" {
+				config.Env[k] = os.Getenv(k)
+			}
+		}
+
 		// setup env vars
-		for k, v := range chaosJob.Config {
+		for k, v := range config.Env {
 			envs = append(envs, coreV1.EnvVar{
 				Name:  k,
 				Value: v,
