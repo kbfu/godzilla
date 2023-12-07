@@ -1,0 +1,2 @@
+image: wxt432/chaos-go-runner:latest
+serviceAccountName: chaos-admin

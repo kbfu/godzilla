@@ -11,23 +11,26 @@ import (
 
 var client *kubernetes.Clientset
 
-func ReadyChaosEnv() {
+func InitKubeClient() {
 	if client == nil {
 		fetchConfig()
 	}
-	//// setup rbac
-	//err := addClusterRole()
-	//if err != nil {
-	//	logrus.Fatalf("create cluster role failed, reason: %s", err.Error())
-	//}
-	//err = addServiceAccount("")
-	//if err != nil {
-	//	logrus.Fatalf("create service account failed, reason: %s", err.Error())
-	//}
-	//err = addRoleBinding("")
-	//if err != nil {
-	//	logrus.Fatalf("create role binding failed, reason: %s", err.Error())
-	//}
+}
+
+func ReadyChaosEnv(namespace string) {
+	// setup rbac
+	err := addClusterRole()
+	if err != nil {
+		logrus.Fatalf("create cluster role failed, reason: %s", err.Error())
+	}
+	err = addServiceAccount(namespace)
+	if err != nil {
+		logrus.Fatalf("create service account failed, reason: %s", err.Error())
+	}
+	err = addRoleBinding(namespace)
+	if err != nil {
+		logrus.Fatalf("create role binding failed, reason: %s", err.Error())
+	}
 }
 
 func fetchConfig() {
