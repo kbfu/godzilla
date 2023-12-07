@@ -47,6 +47,7 @@ func (chaosJob *ChaosJob) preCheck() bool {
 }
 
 func (chaosJob *ChaosJob) cleanJob(actualName string) error {
+	logrus.Infof("Cleaning up the chaos job %s", actualName)
 	policy := metaV1.DeletePropagationForeground
 	return client.BatchV1().Jobs(chaosJob.Namespace).Delete(context.TODO(), actualName, metaV1.DeleteOptions{
 		PropagationPolicy: &policy,
@@ -110,12 +111,9 @@ func CreateChaos() error {
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
 	// deal with logs
 	saveLogs()
-	return nil
+	return err
 }
 
 func saveLogs() {
