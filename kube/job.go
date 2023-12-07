@@ -121,7 +121,7 @@ func saveLogs() {
 	case "github-k8s-runner":
 		filepath.Walk("logs", func(path string, info fs.FileInfo, err error) error {
 			if !info.IsDir() {
-				copyIntoPod(core.GithubWorkerName, core.GithubWorkerNamespace, path,
+				copyIntoPod(core.GithubWorkerName, core.GithubWorkerNamespace, "runner", path,
 					fmt.Sprintf("%s/%s", core.GithubWorkDir, info.Name()))
 			}
 			return nil

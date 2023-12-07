@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func copyIntoPod(podName string, namespace string, srcPath string, dstPath string) {
+func copyIntoPod(podName string, namespace string, container string, srcPath string, dstPath string) {
 	localFile, err := os.Open(srcPath)
 	if err != nil {
 		logrus.Errorf("Error opening local file: %s", err)
@@ -22,13 +22,15 @@ func copyIntoPod(podName string, namespace string, srcPath string, dstPath strin
 		Resource("pods").
 		Name(podName).
 		Namespace(namespace).
-		SubResource("exec")
+		SubResource("exec").
+		Param("container", container)
 
 	req.VersionedParams(&coreV1.PodExecOptions{
-		Command: []string{"sh", "-c", "cat > " + dstPath},
-		Stdin:   true,
-		Stdout:  true,
-		Stderr:  true,
+		Container: container,
+		Command:   []string{"bash", "-c", "cat > " + dstPath},
+		Stdin:     true,
+		Stdout:    true,
+		Stderr:    true,
 	}, scheme.ParameterCodec)
 
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
