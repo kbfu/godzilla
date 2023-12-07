@@ -9,7 +9,7 @@ import (
 )
 
 func addServiceAccount(namespace string) error {
-	_, err := client.CoreV1().ServiceAccounts(namespace).Create(context.Background(), &coreV1.ServiceAccount{
+	_, err := client.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), &coreV1.ServiceAccount{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name: "chaos-admin",
 			Labels: map[string]string{
@@ -25,7 +25,7 @@ func addServiceAccount(namespace string) error {
 }
 
 func addRoleBinding(namespace string) error {
-	_, err := client.RbacV1().ClusterRoleBindings().Create(context.Background(), &rbacV1.ClusterRoleBinding{
+	_, err := client.RbacV1().ClusterRoleBindings().Create(context.TODO(), &rbacV1.ClusterRoleBinding{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name: "chaos-admin",
 			Labels: map[string]string{
@@ -53,7 +53,7 @@ func addRoleBinding(namespace string) error {
 }
 
 func addClusterRole() error {
-	_, err := client.RbacV1().ClusterRoles().Create(context.Background(), &rbacV1.ClusterRole{
+	_, err := client.RbacV1().ClusterRoles().Create(context.TODO(), &rbacV1.ClusterRole{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name: "chaos-admin",
 			Labels: map[string]string{

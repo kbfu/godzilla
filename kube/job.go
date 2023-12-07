@@ -2,7 +2,9 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	"github.com/sirupsen/logrus"
+	"godzilla/core"
 	"godzilla/types"
 	"gopkg.in/yaml.v3"
 	"io/fs"
@@ -22,15 +24,16 @@ type ChaosJob struct {
 	ServiceAccountName string            `yaml:"serviceAccountName"`
 }
 
-func (chaosJob *ChaosJob) Run() error {
+func (chaosJob *ChaosJob) Run() (actualJobName string, err error) {
 	var job batchV1.Job
 	switch chaosJob.Type {
 	case string(types.LitmusPodDelete):
 		job = chaosJob.LitmusJob()
+		actualJobName = job.Name
 	}
 
-	_, err := client.BatchV1().Jobs(chaosJob.Namespace).Create(context.Background(), &job, metaV1.CreateOptions{})
-	return err
+	_, err = client.BatchV1().Jobs(chaosJob.Namespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
+	return
 }
 
 func (chaosJob *ChaosJob) preCheck() bool {
@@ -39,6 +42,13 @@ func (chaosJob *ChaosJob) preCheck() bool {
 		return true
 	}
 	return false
+}
+
+func (chaosJob *ChaosJob) cleanJob(actualName string) error {
+	policy := metaV1.DeletePropagationForeground
+	return client.BatchV1().Jobs(chaosJob.Namespace).Delete(context.TODO(), actualName, metaV1.DeleteOptions{
+		PropagationPolicy: &policy,
+	})
 }
 
 func CreateChaos() error {
@@ -76,17 +86,37 @@ func CreateChaos() error {
 			wg.Add(1)
 			j := j
 			go func() {
-				err := j.Run()
+				actualName, err := j.Run()
 				if err != nil {
-					logrus.Fatal(err)
+					logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
 				}
-				// todo need to watch chaos jobs here
-				// todo collect logs to files
-				// todo copy back to github actions worker if needed
+				// collect logs to files
+				j.fetchChaosLogs(actualName)
+				// cleanup
+				err = j.cleanJob(actualName)
+				if err != nil {
+					logrus.Errorf("Job %s cleanup failed, reason: %s", j.Name, err.Error())
+				}
+				// copy back to github actions worker if needed
 				wg.Done()
 			}()
 		}
 		wg.Wait()
 	}
+	// deal with logs
+	saveLogs()
 	return nil
+}
+
+func saveLogs() {
+	switch core.LogHouse {
+	case "github-k8s-runner":
+		filepath.Walk("logs", func(path string, info fs.FileInfo, err error) error {
+			if !info.IsDir() {
+				copyIntoPod(core.GithubWorkerName, core.GithubWorkerNamespace, path,
+					fmt.Sprintf("%s/%s", core.GithubWorkDir, info.Name()))
+			}
+			return nil
+		})
+	}
 }

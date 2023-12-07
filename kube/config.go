@@ -9,7 +9,10 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-var client *kubernetes.Clientset
+var (
+	client *kubernetes.Clientset
+	config *rest.Config
+)
 
 func InitKubeClient() {
 	if client == nil {
@@ -34,8 +37,9 @@ func ReadyChaosEnv(namespace string) {
 }
 
 func fetchConfig() {
+	var err error
 	if core.LocalDebug {
-		config, err := clientcmd.BuildConfigFromFlags("", homedir.HomeDir()+"/.kube/config")
+		config, err = clientcmd.BuildConfigFromFlags("", homedir.HomeDir()+"/.kube/config")
 		if err != nil {
 			logrus.Fatalf("Get config error, reason: %s", err.Error())
 		}
@@ -44,7 +48,7 @@ func fetchConfig() {
 			logrus.Fatalf("Get client set error, reason: %s", err.Error())
 		}
 	} else {
-		config, err := rest.InClusterConfig()
+		config, err = rest.InClusterConfig()
 		if err != nil {
 			logrus.Fatalf("Get in cluster config error, reason: %s", err.Error())
 		}
