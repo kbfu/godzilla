@@ -10,6 +10,7 @@ import (
 func init() {
 	core.InitLogrus()
 	core.ParseVars()
+	core.CloneChaosRepo()
 	kube.InitKubeClient()
 	//kube.ReadyChaosEnv()
 }

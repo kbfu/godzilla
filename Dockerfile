@@ -16,3 +16,4 @@ FROM alpine:3.18
 COPY --from=builder godzilla/godzilla /godzilla/godzilla
 COPY --from=builder godzilla/scenarios/ /godzilla/scenarios
 WORKDIR /godzilla
+RUN apk add git

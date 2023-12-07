@@ -13,6 +13,9 @@ var (
 	GithubWorkDir         = ""
 	GithubWorkerNamespace = "cicd"
 	Scenario              = ""
+	ChaosGitAddress       = ""
+	ChaosGitRepo          = ""
+	ChaosGitBranch        = "main"
 )
 
 func ParseVars() {
@@ -38,6 +41,15 @@ func ParseVars() {
 	if os.Getenv("ACTIONS_RUNNER_NAMESPACE") != "" {
 		GithubWorkerNamespace = os.Getenv("ACTIONS_RUNNER_NAMESPACE")
 	}
+	if os.Getenv("CHAOS_GIT_ADDRESS") != "" {
+		ChaosGitAddress = os.Getenv("CHAOS_GIT_ADDRESS")
+	}
+	if os.Getenv("CHAOS_GIT_REPO") != "" {
+		ChaosGitRepo = os.Getenv("CHAOS_GIT_REPO")
+	}
+	if os.Getenv("CHAOS_GIT_BRANCH") != "" {
+		ChaosGitBranch = os.Getenv("CHAOS_GIT_BRANCH")
+	}
 
 	logrus.Info("vars for current run")
 	logrus.Infof("LOCAL_DEBUG: %v", LocalDebug)
@@ -46,4 +58,7 @@ func ParseVars() {
 	logrus.Infof("GITHUB_WORKSPACE %s", GithubWorkDir)
 	logrus.Infof("ACTIONS_RUNNER_NAMESPACE %s", GithubWorkerNamespace)
 	logrus.Infof("SCENARIO %s", Scenario)
+	logrus.Infof("CHAOS_GIT_ADDRESS %s", ChaosGitAddress)
+	logrus.Infof("CHAOS_GIT_REPO %s", ChaosGitRepo)
+	logrus.Infof("CHAOS_GIT_BRANCH %s", ChaosGitBranch)
 }

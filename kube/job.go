@@ -56,7 +56,7 @@ func (chaosJob *ChaosJob) cleanJob(actualName string) error {
 
 func CreateChaos() error {
 	// run all inside scenarios
-	err := filepath.Walk("scenarios", func(path string, info fs.FileInfo, err error) error {
+	err := filepath.Walk(fmt.Sprintf("%s/scenarios", core.ChaosGitRepo), func(path string, info fs.FileInfo, err error) error {
 		scenarioName := strings.Split(info.Name(), ".")[0]
 		if core.Scenario != "" && scenarioName != core.Scenario {
 			return nil
