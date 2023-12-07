@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func (chaosJob *ChaosJob) LitmusJob() batchV1.Job {
+func (chaosJob *ChaosJob) LitmusJob(scenarioName string) batchV1.Job {
 	var (
 		backOffLimit   int32 = 0
 		envs           []coreV1.EnvVar
@@ -31,8 +31,8 @@ func (chaosJob *ChaosJob) LitmusJob() batchV1.Job {
 		}
 		// allow it to be overridden by env vars
 		for k := range config.Env {
-			if os.Getenv(k) != "" {
-				config.Env[k] = os.Getenv(k)
+			if os.Getenv(fmt.Sprintf("%s-%s-%s", scenarioName, chaosJob.Name, k)) != "" {
+				config.Env[k] = os.Getenv(fmt.Sprintf("%s-%s-%s", scenarioName, chaosJob.Name, k))
 			}
 		}
 

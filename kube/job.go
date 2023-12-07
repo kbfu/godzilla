@@ -26,11 +26,11 @@ type ChaosJob struct {
 	ServiceAccountName string            `yaml:"serviceAccountName"`
 }
 
-func (chaosJob *ChaosJob) Run() (actualJobName string, err error) {
+func (chaosJob *ChaosJob) Run(scenarioName string) (actualJobName string, err error) {
 	var job batchV1.Job
 	switch chaosJob.Type {
 	case string(types.LitmusPodDelete):
-		job = chaosJob.LitmusJob()
+		job = chaosJob.LitmusJob(scenarioName)
 		actualJobName = job.Name
 	}
 
@@ -88,7 +88,7 @@ func CreateChaos() error {
 					wg.Add(1)
 					j := j
 					go func() {
-						actualName, err := j.Run()
+						actualName, err := j.Run(scenarioName)
 						if err != nil {
 							logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
 						}
