@@ -38,11 +38,7 @@ func (chaosJob *ChaosJob) fetchChaosLogs(actualName string) {
 							return
 						}
 
-						err = os.Mkdir("logs", 0755)
-						if err != nil {
-							logrus.Error(err)
-							return
-						}
+						os.Mkdir("logs", 0755)
 						objectName := fmt.Sprintf("logs/%s.log", actualName)
 						f, err := os.OpenFile(objectName, os.O_CREATE|os.O_RDWR, 0644)
 						if err != nil {

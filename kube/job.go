@@ -7,11 +7,13 @@ import (
 	"godzilla/core"
 	"godzilla/types"
 	"gopkg.in/yaml.v3"
+	"io"
 	"io/fs"
 	batchV1 "k8s.io/api/batch/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -52,12 +54,18 @@ func (chaosJob *ChaosJob) cleanJob(actualName string) error {
 }
 
 func CreateChaos() error {
-	var (
-		chaosJobs [][]ChaosJob
-		wg        sync.WaitGroup
-	)
+	// run all inside scenarios
 	err := filepath.Walk("scenarios", func(path string, info fs.FileInfo, err error) error {
+		scenarioName := strings.Split(info.Name(), ".")[0]
+		if core.Scenario != "" && scenarioName != core.Scenario {
+			return nil
+		}
+		var (
+			chaosJobs [][]ChaosJob
+			wg        sync.WaitGroup
+		)
 		if !info.IsDir() {
+			logrus.Infof("running scenario: %s", scenarioName)
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
@@ -66,42 +74,44 @@ func CreateChaos() error {
 			if err != nil {
 				return err
 			}
+			// precheck before run
+			for _, parallelJobs := range chaosJobs {
+				for _, j := range parallelJobs {
+					if !j.preCheck() {
+						logrus.Fatalf("Pre check failed, unknown type %s", j.Type)
+					}
+				}
+			}
+
+			for _, parallelJobs := range chaosJobs {
+				for _, j := range parallelJobs {
+					wg.Add(1)
+					j := j
+					go func() {
+						actualName, err := j.Run()
+						if err != nil {
+							logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
+						}
+						// collect logs to files
+						j.fetchChaosLogs(actualName)
+						// cleanup
+						err = j.cleanJob(actualName)
+						if err != nil {
+							logrus.Errorf("Job %s cleanup failed, reason: %s", j.Name, err.Error())
+						}
+						wg.Done()
+					}()
+				}
+				wg.Wait()
+			}
+		}
+		if core.Scenario != "" && scenarioName == core.Scenario {
+			return io.EOF
 		}
 		return nil
 	})
 	if err != nil {
 		return err
-	}
-	// precheck before run
-	for _, parallelJobs := range chaosJobs {
-		for _, j := range parallelJobs {
-			if !j.preCheck() {
-				logrus.Fatalf("Pre check failed, unknown type %s", j.Type)
-			}
-		}
-	}
-
-	for _, parallelJobs := range chaosJobs {
-		for _, j := range parallelJobs {
-			wg.Add(1)
-			j := j
-			go func() {
-				actualName, err := j.Run()
-				if err != nil {
-					logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
-				}
-				// collect logs to files
-				j.fetchChaosLogs(actualName)
-				// cleanup
-				err = j.cleanJob(actualName)
-				if err != nil {
-					logrus.Errorf("Job %s cleanup failed, reason: %s", j.Name, err.Error())
-				}
-				// copy back to github actions worker if needed
-				wg.Done()
-			}()
-		}
-		wg.Wait()
 	}
 	// deal with logs
 	saveLogs()

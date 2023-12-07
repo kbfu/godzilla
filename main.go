@@ -4,6 +4,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"godzilla/core"
 	"godzilla/kube"
+	"io"
 )
 
 func init() {
@@ -15,7 +16,7 @@ func init() {
 
 func main() {
 	err := kube.CreateChaos()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		logrus.Fatalf("Create chaos failed, reason %s", err.Error())
 	}
 }
