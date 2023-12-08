@@ -10,7 +10,8 @@ func CloneChaosRepo() {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		logrus.Info(string(out))
-		logrus.Fatal(err)
+		// retry
+		CloneChaosRepo()
 	}
 	logrus.Info(string(out))
 }
