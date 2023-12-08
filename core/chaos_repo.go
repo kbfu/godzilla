@@ -7,9 +7,10 @@ import (
 
 func CloneChaosRepo() {
 	cmd := exec.Command("git", "clone", "-b", ChaosGitBranch, ChaosGitAddress)
-	stdout, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
+		logrus.Info(string(out))
 		logrus.Fatal(err)
 	}
-	logrus.Info(stdout)
+	logrus.Info(string(out))
 }
