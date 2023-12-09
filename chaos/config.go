@@ -1,8 +1,8 @@
-package kube
+package chaos
 
 import (
 	"github.com/sirupsen/logrus"
-	"godzilla/core"
+	"godzilla/env"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -38,7 +38,7 @@ func ReadyChaosEnv(namespace string) {
 
 func fetchConfig() {
 	var err error
-	if core.LocalDebug {
+	if env.LocalDebug {
 		config, err = clientcmd.BuildConfigFromFlags("", homedir.HomeDir()+"/.kube/config")
 		if err != nil {
 			logrus.Fatalf("Get config error, reason: %s", err.Error())

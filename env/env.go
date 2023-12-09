@@ -1,4 +1,4 @@
-package core
+package env
 
 import (
 	"github.com/sirupsen/logrus"
@@ -12,14 +12,10 @@ var (
 	GithubWorkerName      = populateEnv("ACTIONS_RUNNER_POD_NAME", "").(string)
 	GithubWorkDir         = populateEnv("GITHUB_WORKSPACE", "").(string)
 	GithubWorkerNamespace = populateEnv("ACTIONS_RUNNER_NAMESPACE", "cicd").(string)
-	Scenario              = populateEnv("SCENARIO", "").(string)
-	ChaosGitAddress       = populateEnv("CHAOS_GIT_ADDRESS", "").(string)
-	ChaosGitRepo          = populateEnv("CHAOS_GIT_REPO", "").(string)
-	ChaosGitBranch        = populateEnv("CHAOS_GIT_BRANCH", "main").(string)
-	MysqlUser             = populateEnv("MYSQL_USER", "string").(string)
+	MysqlUser             = populateEnv("MYSQL_USER", "root").(string)
 	MysqlPassword         = populateEnv("MYSQL_PASSWORD", "root").(string)
-	MysqlHost             = populateEnv("MYSQL_HOST", "").(string)
-	MysqlPort             = populateEnv("MYSQL_PORT", "").(string)
+	MysqlHost             = populateEnv("MYSQL_HOST", "127.0.0.1").(string)
+	MysqlPort             = populateEnv("MYSQL_PORT", "3306").(string)
 	MysqlDatabase         = populateEnv("MYSQL_DATABASE", "godzilla").(string)
 )
 
@@ -48,8 +44,4 @@ func ParseVars() {
 	logrus.Infof("ACTIONS_RUNNER_POD_NAME %s", GithubWorkerName)
 	logrus.Infof("GITHUB_WORKSPACE %s", GithubWorkDir)
 	logrus.Infof("ACTIONS_RUNNER_NAMESPACE %s", GithubWorkerNamespace)
-	logrus.Infof("SCENARIO %s", Scenario)
-	logrus.Infof("CHAOS_GIT_ADDRESS %s", ChaosGitAddress)
-	logrus.Infof("CHAOS_GIT_REPO %s", ChaosGitRepo)
-	logrus.Infof("CHAOS_GIT_BRANCH %s", ChaosGitBranch)
 }

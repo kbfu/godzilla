@@ -2,22 +2,31 @@ package main
 
 import (
 	"github.com/sirupsen/logrus"
+	"godzilla/chaos"
 	"godzilla/core"
-	"godzilla/kube"
-	"io"
+	"godzilla/db"
+	"godzilla/env"
 )
 
 func init() {
 	core.InitLogrus()
-	core.ParseVars()
+	env.ParseVars()
+	db.Open()
 	core.CloneChaosRepo()
-	kube.InitKubeClient()
+	chaos.InitKubeClient()
 	//kube.ReadyChaosEnv()
 }
 
 func main() {
-	err := kube.CreateChaos()
-	if err != nil && err != io.EOF {
-		logrus.Fatalf("Create chaos failed, reason %s", err.Error())
+	r := core.SetupRouter()
+
+	err := r.Run()
+	if err != nil {
+		logrus.Fatal(err)
 	}
+
+	//err := kube.CreateChaos()
+	//if err != nil && err != io.EOF {
+	//	logrus.Fatalf("Create chaos failed, reason %s", err.Error())
+	//}
 }

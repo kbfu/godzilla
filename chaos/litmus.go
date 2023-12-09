@@ -1,4 +1,4 @@
-package kube
+package chaos
 
 import (
 	"fmt"
@@ -31,6 +31,7 @@ func (chaosJob *ChaosJob) LitmusJob(scenarioName string) batchV1.Job {
 		}
 		// allow it to be overridden by env vars
 		for k := range config.Env {
+			// todo
 			if os.Getenv(fmt.Sprintf("%s-%s-%s", scenarioName, chaosJob.Name, k)) != "" {
 				config.Env[k] = os.Getenv(fmt.Sprintf("%s-%s-%s", scenarioName, chaosJob.Name, k))
 			}

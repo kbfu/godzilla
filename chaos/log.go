@@ -1,4 +1,4 @@
-package kube
+package chaos
 
 import (
 	"context"
@@ -16,9 +16,13 @@ import (
 
 func (chaosJob *ChaosJob) fetchChaosLogs(actualName string) {
 	pod := client.CoreV1().Pods(chaosJob.Namespace)
-	w, _ := pod.Watch(context.TODO(), metaV1.ListOptions{
+	w, err := pod.Watch(context.TODO(), metaV1.ListOptions{
 		LabelSelector: "chaos.job=true",
 	})
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 
 	for c := range w.ResultChan() {
 		if c.Object != nil && c.Type != watch.Error && c.Type != watch.Deleted {

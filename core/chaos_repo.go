@@ -1,18 +1,37 @@
 package core
 
 import (
-	"os/exec"
-
 	"github.com/sirupsen/logrus"
+	"godzilla/db"
+	"math/rand"
+	"os/exec"
+	"time"
 )
 
 func CloneChaosRepo() {
-	cmd := exec.Command("git", "clone", "-b", ChaosGitBranch, ChaosGitAddress)
-	out, err := cmd.CombinedOutput()
+	repo := db.Repo{}
+	rows, err := repo.FetchAll()
 	if err != nil {
-		logrus.Info(string(out))
-		// retry
-		CloneChaosRepo()
+		logrus.Fatal(err)
 	}
-	logrus.Info(string(out))
+	for _, row := range rows {
+		cmd := exec.Command("git", "clone", "-b", row.Branch, row.Address, row.Name)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			logrus.Fatal(string(out))
+		}
+		logrus.Info(string(out))
+		row := row
+		go func() {
+			for {
+				time.Sleep(time.Duration(rand.Intn(60)) * time.Second)
+				cmd := exec.Command("git", "-C", row.Name, "pull")
+				out, err := cmd.CombinedOutput()
+				if err != nil {
+					logrus.Errorf("update for repo %s failed, reason: %s", row.Name, string(out))
+					continue
+				}
+			}
+		}()
+	}
 }
