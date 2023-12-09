@@ -14,11 +14,14 @@ const (
 	FailedStatus  JobStatus = "failed"
 )
 
-func initStatus(chaosJobs [][]ChaosJob, scenarioId uint) error {
+var statusChan = make(chan ChaosJob, 100)
+
+func initStatus(chaosJobs [][]ChaosJob, scenarioId uint) (statusId uint, err error) {
 	jobs, _ := yaml.Marshal(chaosJobs)
 	jobStatus := db.JobStatus{
 		ScenarioId: scenarioId,
 		Status:     string(jobs),
 	}
-	return jobStatus.Add()
+	err = jobStatus.Add()
+	return jobStatus.Id, err
 }

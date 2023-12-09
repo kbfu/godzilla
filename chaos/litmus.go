@@ -9,7 +9,7 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (chaosJob *ChaosJob) LitmusJob() batchV1.Job {
+func (chaosJob *ChaosJob) LitmusJob(jobStatusId uint) batchV1.Job {
 	var (
 		backOffLimit int32 = 0
 		envs         []coreV1.EnvVar
@@ -34,7 +34,8 @@ func (chaosJob *ChaosJob) LitmusJob() batchV1.Job {
 			Name:      jobName,
 			Namespace: chaosJob.Namespace,
 			Labels: map[string]string{
-				"chaos.job": "true",
+				"chaos.job":    "true",
+				"chaos.job.id": fmt.Sprintf("%v", jobStatusId),
 			},
 		},
 		Spec: batchV1.JobSpec{
@@ -42,7 +43,8 @@ func (chaosJob *ChaosJob) LitmusJob() batchV1.Job {
 			Template: coreV1.PodTemplateSpec{
 				ObjectMeta: metaV1.ObjectMeta{
 					Labels: map[string]string{
-						"chaos.job": "true",
+						"chaos.job":    "true",
+						"chaos.job.id": fmt.Sprintf("%v", jobStatusId),
 					},
 				},
 				Spec: coreV1.PodSpec{

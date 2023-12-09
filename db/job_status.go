@@ -4,7 +4,6 @@ type JobStatus struct {
 	Base
 	ScenarioId uint
 	Status     string
-	Reason     string
 }
 
 func (*JobStatus) TableName() string {

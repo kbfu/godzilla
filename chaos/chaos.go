@@ -8,15 +8,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"godzilla/chaos/litmus/pod"
 	"godzilla/db"
-	"godzilla/env"
 	"godzilla/types"
 	"gopkg.in/yaml.v3"
-	"io/fs"
 	batchV1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
-	"path/filepath"
 	"reflect"
 	"sync"
 )
@@ -29,13 +26,14 @@ type ChaosJob struct {
 	Image              string            `yaml:"image"`
 	ServiceAccountName string            `yaml:"serviceAccountName"`
 	Status             JobStatus         `yaml:"status"`
+	FailedReason       string            `yaml:"failedReason"`
 }
 
-func (chaosJob *ChaosJob) Run() (actualJobName string, err error) {
+func (chaosJob *ChaosJob) Run(jobStatusId uint) (actualJobName string, err error) {
 	var job batchV1.Job
 	switch chaosJob.Type {
 	case string(types.LitmusPodDelete):
-		job = chaosJob.LitmusJob()
+		job = chaosJob.LitmusJob(jobStatusId)
 		actualJobName = job.Name
 	}
 
@@ -43,12 +41,24 @@ func (chaosJob *ChaosJob) Run() (actualJobName string, err error) {
 	return
 }
 
-func (chaosJob *ChaosJob) preCheck() bool {
-	switch chaosJob.Type {
-	case string(types.LitmusPodDelete):
-		return true
+func preCheck(chaosJobs [][]ChaosJob) error {
+	dup := make(map[string]string)
+	for _, parallelJobs := range chaosJobs {
+		for _, j := range parallelJobs {
+			_, ok := dup[j.Name]
+			if !ok {
+				dup[j.Name] = ""
+			} else {
+				return errors.New(fmt.Sprintf("duplicate step name found: %s", j.Name))
+			}
+			switch j.Type {
+			case string(types.LitmusPodDelete):
+			default:
+				return errors.New(fmt.Sprintf("unsupported type %s", j.Type))
+			}
+		}
 	}
-	return false
+	return nil
 }
 
 func (chaosJob *ChaosJob) cleanJob(actualName string) error {
@@ -85,7 +95,6 @@ func overrideConfig(chaosJobs [][]ChaosJob, body ChaosBody) {
 					}
 				}
 
-				// todo move to the start
 				if chaosJobs[i][j].Image == "" {
 					chaosJobs[i][j].Image = config.Image
 				}
@@ -129,21 +138,18 @@ func CreateChaos(c *gin.Context) {
 	// override the configuration
 	overrideConfig(chaosJobs, body)
 
-	err = initStatus(chaosJobs, s.Id)
+	jobStatusId, err := initStatus(chaosJobs, s.Id)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(MySqlSaveError, err))
 		return
 	}
 
 	// pre-check before run
-	for _, parallelJobs := range chaosJobs {
-		for _, j := range parallelJobs {
-			if !j.preCheck() {
-				c.AbortWithStatusJSON(http.StatusInternalServerError,
-					ErrorResponse(InvalidScenario, errors.New(fmt.Sprintf("pre check failed, unknown type %s", j.Type))))
-				return
-			}
-		}
+	err = preCheck(chaosJobs)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			ErrorResponse(InvalidScenario, err))
+		return
 	}
 
 	go func() {
@@ -152,7 +158,7 @@ func CreateChaos(c *gin.Context) {
 				wg.Add(1)
 				j := j
 				go func() {
-					actualName, err := j.Run()
+					actualName, err := j.Run(jobStatusId)
 					if err != nil {
 						logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
 						// todo job status failed
@@ -161,8 +167,8 @@ func CreateChaos(c *gin.Context) {
 					}
 					// todo job status started
 					// watch for the status
-					pod := client.CoreV1().Pods(j.Namespace)
-					w, err := pod.Watch(context.TODO(), metaV1.ListOptions{
+					kubePod := client.CoreV1().Pods(j.Namespace)
+					w, err := kubePod.Watch(context.TODO(), metaV1.ListOptions{
 						LabelSelector: "chaos.job=true",
 					})
 					if err != nil {
@@ -194,17 +200,4 @@ func CreateChaos(c *gin.Context) {
 		}
 	}()
 	c.JSON(http.StatusCreated, NormalResponse(Ok, ""))
-}
-
-func saveLogs() {
-	switch env.LogHouse {
-	case "github-k8s-runner":
-		filepath.Walk("logs", func(path string, info fs.FileInfo, err error) error {
-			if !info.IsDir() {
-				copyIntoPod(env.GithubWorkerName, env.GithubWorkerNamespace, "runner", path,
-					fmt.Sprintf("%s/%s", env.GithubWorkDir, info.Name()))
-			}
-			return nil
-		})
-	}
 }
