@@ -13,6 +13,7 @@ func init() {
 	env.ParseVars()
 	db.Open()
 	chaos.InitKubeClient()
+	go chaos.StatusWorker()
 	//kube.ReadyChaosEnv()
 }
 

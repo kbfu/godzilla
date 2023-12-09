@@ -161,11 +161,14 @@ func CreateChaos(c *gin.Context) {
 					actualName, err := j.Run(jobStatusId)
 					if err != nil {
 						logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
-						// todo job status failed
-						// todo scenario status failed
+						j.Status = FailedStatus
+						j.FailedReason = err.Error()
+						statusChan <- map[uint]ChaosJob{jobStatusId: j}
 						return
 					}
-					// todo job status started
+					// job status started
+					j.Status = RunningStatus
+					statusChan <- map[uint]ChaosJob{jobStatusId: j}
 					// watch for the status
 					kubePod := client.CoreV1().Pods(j.Namespace)
 					w, err := kubePod.Watch(context.TODO(), metaV1.ListOptions{
@@ -173,8 +176,10 @@ func CreateChaos(c *gin.Context) {
 					})
 					if err != nil {
 						logrus.Errorf("job %s status watch failed, reason: %s", j.Name, err.Error())
-						// todo job status failed
-						// todo scenario status failed
+						j.Status = FailedStatus
+						j.FailedReason = err.Error()
+						statusChan <- map[uint]ChaosJob{jobStatusId: j}
+						return
 					}
 					for c := range w.ResultChan() {
 						if c.Object != nil {
@@ -185,9 +190,21 @@ func CreateChaos(c *gin.Context) {
 									err = j.cleanJob(actualName)
 									if err != nil {
 										logrus.Errorf("job %s cleanup failed, reason: %s", j.Name, err.Error())
-										// todo job status failed
-										// todo scenario status failed
+										j.Status = FailedStatus
+										j.FailedReason = err.Error()
+										statusChan <- map[uint]ChaosJob{jobStatusId: j}
+										return
 									}
+									switch podObject.Status.Phase {
+									case coreV1.PodSucceeded:
+										j.Status = SuccessStatus
+									case coreV1.PodFailed:
+										j.Status = FailedStatus
+										j.FailedReason = "chaos job pod running failed"
+									default:
+										j.Status = UnknownStatus
+									}
+									statusChan <- map[uint]ChaosJob{jobStatusId: j}
 									break
 								}
 							}
