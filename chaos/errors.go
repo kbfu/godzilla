@@ -28,6 +28,7 @@ const (
 	ReadFileError
 	InvalidScenario
 	ChaosJobRunError
+	ScenarioNotFound
 )
 
 var errorMsgMap = map[int]string{
@@ -41,6 +42,7 @@ var errorMsgMap = map[int]string{
 	ReadFileError:      "read file error",
 	InvalidScenario:    "invalid scenario",
 	ChaosJobRunError:   "chaos job run failed",
+	ScenarioNotFound:   "scenario not found",
 }
 
 type responseError struct {

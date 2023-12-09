@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"godzilla/db"
 	"godzilla/env"
 	"godzilla/types"
 	"gopkg.in/yaml.v3"
@@ -14,7 +15,6 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
-	"os"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -29,11 +29,11 @@ type ChaosJob struct {
 	ServiceAccountName string            `yaml:"serviceAccountName"`
 }
 
-func (chaosJob *ChaosJob) Run(scenarioName string) (actualJobName string, err error) {
+func (chaosJob *ChaosJob) Run(scenarioName string, overriddenConfig map[string]string) (actualJobName string, err error) {
 	var job batchV1.Job
 	switch chaosJob.Type {
 	case string(types.LitmusPodDelete):
-		job = chaosJob.LitmusJob(scenarioName)
+		job = chaosJob.LitmusJob(scenarioName, overriddenConfig)
 		actualJobName = job.Name
 	}
 
@@ -58,7 +58,6 @@ func (chaosJob *ChaosJob) cleanJob(actualName string) error {
 }
 
 type ChaosBody struct {
-	Repo             string            `json:"repo" binding:"required"`
 	Scenario         string            `json:"scenario" binding:"required"`
 	OverriddenConfig map[string]string `json:"overriddenConfig,omitempty"`
 }
@@ -76,13 +75,17 @@ func CreateChaos(c *gin.Context) {
 		chaosJobs [][]ChaosJob
 		wg        sync.WaitGroup
 	)
-	logrus.Infof("running scenario: %s", body.Scenario)
-	data, err := os.ReadFile(fmt.Sprintf("%s/scenarios/%s.yaml", body.Repo, body.Scenario))
+	logrus.Infof("getting scenario deifition for %s", body.Scenario)
+	s := db.Scenario{Name: body.Scenario}
+	err = s.GetByName()
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(ReadFileError, err))
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse(ReadFileError, err))
 		return
 	}
-	err = yaml.Unmarshal(data, &chaosJobs)
+
+	logrus.Infof("running scenario: %s", body.Scenario)
+	data := s.Definition
+	err = yaml.Unmarshal([]byte(data), &chaosJobs)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(YamlMarshalError, err))
 		return
@@ -104,7 +107,7 @@ func CreateChaos(c *gin.Context) {
 				wg.Add(1)
 				j := j
 				go func() {
-					actualName, err := j.Run(body.Scenario)
+					actualName, err := j.Run(body.Scenario, body.OverriddenConfig)
 					if err != nil {
 						logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
 						// todo job status failed

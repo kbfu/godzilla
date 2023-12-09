@@ -8,10 +8,9 @@ import (
 	batchV1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 )
 
-func (chaosJob *ChaosJob) LitmusJob(scenarioName string) batchV1.Job {
+func (chaosJob *ChaosJob) LitmusJob(scenarioName string, overriddenConfig map[string]string) batchV1.Job {
 	var (
 		backOffLimit   int32 = 0
 		envs           []coreV1.EnvVar
@@ -31,9 +30,9 @@ func (chaosJob *ChaosJob) LitmusJob(scenarioName string) batchV1.Job {
 		}
 		// allow it to be overridden by env vars
 		for k := range config.Env {
-			// todo
-			if os.Getenv(fmt.Sprintf("%s-%s-%s", scenarioName, chaosJob.Name, k)) != "" {
-				config.Env[k] = os.Getenv(fmt.Sprintf("%s-%s-%s", scenarioName, chaosJob.Name, k))
+			_, ok := overriddenConfig[fmt.Sprintf("%s-%s", chaosJob.Name, k)]
+			if ok {
+				config.Env[k] = overriddenConfig[fmt.Sprintf("%s-%s", chaosJob.Name, k)]
 			}
 		}
 

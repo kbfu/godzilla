@@ -12,7 +12,6 @@ func init() {
 	core.InitLogrus()
 	env.ParseVars()
 	db.Open()
-	core.CloneChaosRepo()
 	chaos.InitKubeClient()
 	//kube.ReadyChaosEnv()
 }

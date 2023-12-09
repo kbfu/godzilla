@@ -1,10 +1,13 @@
 create schema godzilla collate utf8mb4_general_ci;
 
-create table godzilla.repo
+create table scenario
 (
-    id      int auto_increment
+    id         int auto_increment
         primary key,
-    address varchar(255) null,
-    name    varchar(255) not null,
-    branch  varchar(255) not null
+    name       varchar(255)                        not null,
+    definition longtext                            not null,
+    createdAt  timestamp default CURRENT_TIMESTAMP null,
+    updatedAt  timestamp default CURRENT_TIMESTAMP not null,
+    constraint scenario_pk
+        unique (name)
 );
