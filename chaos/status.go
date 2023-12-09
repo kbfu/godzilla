@@ -9,6 +9,10 @@ import (
 
 type JobStatus string
 
+// pending -> running -> success -> failed
+//
+//						 \-> failed
+//	                  \-> unknown
 const (
 	PendingStatus JobStatus = "pending"
 	RunningStatus JobStatus = "running"
@@ -18,6 +22,17 @@ const (
 )
 
 var statusChan = make(chan map[uint]ChaosJob, 100)
+
+func statusCheck(prev JobStatus, curr JobStatus) bool {
+	if prev == PendingStatus && (curr == RunningStatus || curr == FailedStatus || curr == UnknownStatus || curr == SuccessStatus) {
+		return true
+	} else if prev == RunningStatus && (curr == FailedStatus || curr == UnknownStatus || curr == SuccessStatus) {
+		return true
+	} else if prev == SuccessStatus && curr == FailedStatus {
+		return true
+	}
+	return false
+}
 
 func StatusWorker() {
 	for status := range statusChan {
@@ -38,9 +53,11 @@ func StatusWorker() {
 			for i := range chaosJobs {
 				for j := range chaosJobs[i] {
 					if chaosJobs[i][j].Name == v.Name {
-						chaosJobs[i][j].Status = v.Status
-						chaosJobs[i][j].FailedReason = v.FailedReason
-						break out
+						if statusCheck(chaosJobs[i][j].Status, v.Status) {
+							chaosJobs[i][j].Status = v.Status
+							chaosJobs[i][j].FailedReason = v.FailedReason
+							break out
+						}
 					}
 				}
 			}

@@ -29,16 +29,22 @@ type ChaosJob struct {
 	FailedReason       string            `yaml:"failedReason"`
 }
 
-func (chaosJob *ChaosJob) Run(jobStatusId uint) (actualJobName string, err error) {
+func (chaosJob *ChaosJob) Run(jobStatusId uint) error {
 	var job batchV1.Job
 	switch chaosJob.Type {
 	case string(types.LitmusPodDelete):
 		job = chaosJob.LitmusJob(jobStatusId)
-		actualJobName = job.Name
+		_, err := client.BatchV1().Jobs(chaosJob.Namespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	case string(types.LitmusPodIoStress):
+		// todo watch for the new pods and schedule dynamically
+		// todo need to be done within a goroutine
+		// todo the time of the duration need to be calculated according to the current time
 	}
 
-	_, err = client.BatchV1().Jobs(chaosJob.Namespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
-	return
+	return nil
 }
 
 func preCheck(chaosJobs [][]ChaosJob) error {
@@ -61,12 +67,25 @@ func preCheck(chaosJobs [][]ChaosJob) error {
 	return nil
 }
 
-func (chaosJob *ChaosJob) cleanJob(actualName string) error {
-	logrus.Infof("Cleaning up the chaos job %s", actualName)
+func (chaosJob *ChaosJob) cleanJob(jobStatusId uint) error {
+	logrus.Infof("Cleaning up the chaos job, status id: %v", jobStatusId)
 	policy := metaV1.DeletePropagationForeground
-	return client.BatchV1().Jobs(chaosJob.Namespace).Delete(context.TODO(), actualName, metaV1.DeleteOptions{
-		PropagationPolicy: &policy,
+	// get name
+	jobList, err := client.BatchV1().Jobs(chaosJob.Namespace).List(context.TODO(), metaV1.ListOptions{
+		LabelSelector: fmt.Sprintf("chaos.job.id=%v", jobStatusId),
 	})
+	if err != nil {
+		return err
+	}
+	for _, j := range jobList.Items {
+		err := client.BatchV1().Jobs(chaosJob.Namespace).Delete(context.TODO(), j.Name, metaV1.DeleteOptions{
+			PropagationPolicy: &policy,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type ChaosBody struct {
@@ -158,7 +177,7 @@ func CreateChaos(c *gin.Context) {
 				wg.Add(1)
 				j := j
 				go func() {
-					actualName, err := j.Run(jobStatusId)
+					err := j.Run(jobStatusId)
 					if err != nil {
 						logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
 						j.Status = FailedStatus
@@ -172,7 +191,7 @@ func CreateChaos(c *gin.Context) {
 					// watch for the status
 					kubePod := client.CoreV1().Pods(j.Namespace)
 					w, err := kubePod.Watch(context.TODO(), metaV1.ListOptions{
-						LabelSelector: "chaos.job=true",
+						LabelSelector: fmt.Sprintf("chaos.job.id=%v", jobStatusId),
 					})
 					if err != nil {
 						logrus.Errorf("job %s status watch failed, reason: %s", j.Name, err.Error())
@@ -187,7 +206,7 @@ func CreateChaos(c *gin.Context) {
 								podObject := c.Object.(*coreV1.Pod)
 								if podObject.Status.Phase == coreV1.PodSucceeded || podObject.Status.Phase == coreV1.PodFailed {
 									// cleanup
-									err = j.cleanJob(actualName)
+									err = j.cleanJob(jobStatusId)
 									if err != nil {
 										logrus.Errorf("job %s cleanup failed, reason: %s", j.Name, err.Error())
 										j.Status = FailedStatus
