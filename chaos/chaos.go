@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"godzilla/chaos/litmus/pod"
 	"godzilla/db"
 	"godzilla/env"
 	"godzilla/types"
@@ -27,13 +28,14 @@ type ChaosJob struct {
 	Config             map[string]string `yaml:"config"`
 	Image              string            `yaml:"image"`
 	ServiceAccountName string            `yaml:"serviceAccountName"`
+	Status             JobStatus         `yaml:"status"`
 }
 
-func (chaosJob *ChaosJob) Run(scenarioName string, overriddenConfig map[string]string) (actualJobName string, err error) {
+func (chaosJob *ChaosJob) Run() (actualJobName string, err error) {
 	var job batchV1.Job
 	switch chaosJob.Type {
 	case string(types.LitmusPodDelete):
-		job = chaosJob.LitmusJob(scenarioName, overriddenConfig)
+		job = chaosJob.LitmusJob()
 		actualJobName = job.Name
 	}
 
@@ -60,6 +62,40 @@ func (chaosJob *ChaosJob) cleanJob(actualName string) error {
 type ChaosBody struct {
 	Scenario         string            `json:"scenario" binding:"required"`
 	OverriddenConfig map[string]string `json:"overriddenConfig,omitempty"`
+}
+
+func overrideConfig(chaosJobs [][]ChaosJob, body ChaosBody) {
+	for i := range chaosJobs {
+		for j := range chaosJobs[i] {
+			switch chaosJobs[i][j].Type {
+			case string(types.LitmusPodDelete):
+				config := pod.PopulateDefaultDeletePod()
+				// override default config
+				for k, v := range config.Env {
+					_, ok := chaosJobs[i][j].Config[k]
+					if !ok {
+						chaosJobs[i][j].Config[k] = v
+					}
+				}
+				// allow it to be overridden by request body
+				for k := range chaosJobs[i][j].Config {
+					_, ok := body.OverriddenConfig[fmt.Sprintf("%s-%s", chaosJobs[i][j].Name, k)]
+					if ok {
+						chaosJobs[i][j].Config[k] = body.OverriddenConfig[fmt.Sprintf("%s-%s", chaosJobs[i][j].Name, k)]
+					}
+				}
+
+				// todo move to the start
+				if chaosJobs[i][j].Image == "" {
+					chaosJobs[i][j].Image = config.Image
+				}
+				if chaosJobs[i][j].ServiceAccountName == "" {
+					chaosJobs[i][j].ServiceAccountName = config.ServiceAccountName
+				}
+			}
+			chaosJobs[i][j].Status = PendingStatus
+		}
+	}
 }
 
 func CreateChaos(c *gin.Context) {
@@ -90,6 +126,15 @@ func CreateChaos(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(YamlMarshalError, err))
 		return
 	}
+	// override the configuration
+	overrideConfig(chaosJobs, body)
+
+	err = initStatus(chaosJobs, s.Id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(MySqlSaveError, err))
+		return
+	}
+
 	// pre-check before run
 	for _, parallelJobs := range chaosJobs {
 		for _, j := range parallelJobs {
@@ -107,7 +152,7 @@ func CreateChaos(c *gin.Context) {
 				wg.Add(1)
 				j := j
 				go func() {
-					actualName, err := j.Run(body.Scenario, body.OverriddenConfig)
+					actualName, err := j.Run()
 					if err != nil {
 						logrus.Errorf("Job %s run failed, reason: %s", j.Name, err.Error())
 						// todo job status failed
