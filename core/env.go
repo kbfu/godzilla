@@ -7,50 +7,41 @@ import (
 )
 
 var (
-	LocalDebug            = false
-	LogHouse              = "github-k8s-runner"
-	GithubWorkerName      = ""
-	GithubWorkDir         = ""
-	GithubWorkerNamespace = "cicd"
-	Scenario              = ""
-	ChaosGitAddress       = ""
-	ChaosGitRepo          = ""
-	ChaosGitBranch        = "main"
+	LocalDebug            = populateEnv("LOCAL_DEBUG", false).(bool)
+	LogHouse              = populateEnv("LOG_HOUSE", "github-k8s-runner").(string)
+	GithubWorkerName      = populateEnv("ACTIONS_RUNNER_POD_NAME", "").(string)
+	GithubWorkDir         = populateEnv("GITHUB_WORKSPACE", "").(string)
+	GithubWorkerNamespace = populateEnv("ACTIONS_RUNNER_NAMESPACE", "cicd").(string)
+	Scenario              = populateEnv("SCENARIO", "").(string)
+	ChaosGitAddress       = populateEnv("CHAOS_GIT_ADDRESS", "").(string)
+	ChaosGitRepo          = populateEnv("CHAOS_GIT_REPO", "").(string)
+	ChaosGitBranch        = populateEnv("CHAOS_GIT_BRANCH", "main").(string)
+	MysqlUser             = populateEnv("MYSQL_USER", "string").(string)
+	MysqlPassword         = populateEnv("MYSQL_PASSWORD", "root").(string)
+	MysqlHost             = populateEnv("MYSQL_HOST", "").(string)
+	MysqlPort             = populateEnv("MYSQL_PORT", "").(string)
+	MysqlDatabase         = populateEnv("MYSQL_DATABASE", "godzilla").(string)
 )
 
-func ParseVars() {
-	var err error
-	if os.Getenv("LOCAL_DEBUG") != "" {
-		LocalDebug, err = strconv.ParseBool(os.Getenv("LOCAL_DEBUG"))
-		if err != nil {
-			logrus.Fatalf("Parse LOCAL_DEBUG error, reason, %s", err.Error())
+func populateEnv(name string, defaultValue any) any {
+	if name == "LOCAL_DEBUG" {
+		if os.Getenv(name) != "" {
+			val, err := strconv.ParseBool(os.Getenv("LOCAL_DEBUG"))
+			if err != nil {
+				logrus.Fatalf("Parse LOCAL_DEBUG error, reason, %s", err.Error())
+			}
+			return val
+		}
+	} else {
+		if os.Getenv(name) != "" {
+			return os.Getenv(name)
 		}
 	}
-	if os.Getenv("ACTIONS_RUNNER_POD_NAME") != "" {
-		GithubWorkerName = os.Getenv("ACTIONS_RUNNER_POD_NAME")
-	}
-	if os.Getenv("GITHUB_WORKSPACE") != "" {
-		GithubWorkDir = os.Getenv("GITHUB_WORKSPACE")
-	}
-	if os.Getenv("SCENARIO") != "" {
-		Scenario = os.Getenv("SCENARIO")
-	}
-	if os.Getenv("LOG_HOUSE") != "" {
-		LogHouse = os.Getenv("LOG_HOUSE")
-	}
-	if os.Getenv("ACTIONS_RUNNER_NAMESPACE") != "" {
-		GithubWorkerNamespace = os.Getenv("ACTIONS_RUNNER_NAMESPACE")
-	}
-	if os.Getenv("CHAOS_GIT_ADDRESS") != "" {
-		ChaosGitAddress = os.Getenv("CHAOS_GIT_ADDRESS")
-	}
-	if os.Getenv("CHAOS_GIT_REPO") != "" {
-		ChaosGitRepo = os.Getenv("CHAOS_GIT_REPO")
-	}
-	if os.Getenv("CHAOS_GIT_BRANCH") != "" {
-		ChaosGitBranch = os.Getenv("CHAOS_GIT_BRANCH")
-	}
 
+	return defaultValue
+}
+
+func ParseVars() {
 	logrus.Info("vars for current run")
 	logrus.Infof("LOCAL_DEBUG: %v", LocalDebug)
 	logrus.Infof("LOG_HOUSE %s", LogHouse)
