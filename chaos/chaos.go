@@ -91,9 +91,9 @@ func (chaosJob *ChaosJob) Run(jobStatusId uint) {
 		}
 	case string(types.LitmusPodIoStress):
 		go func() {
-			start := time.Now().Second()
+			start := time.Now().Unix()
 			duration, _ := strconv.Atoi(chaosJob.Config["TOTAL_CHAOS_DURATION"])
-			elapsed := start + duration
+			elapsed := int(start) + duration
 			var targetPods []string
 			if chaosJob.Config["TARGET_PODS"] != "" {
 				targetPods = strings.Split(chaosJob.Config["TARGET_PODS"], ",")
@@ -169,7 +169,7 @@ func (chaosJob *ChaosJob) Run(jobStatusId uint) {
 
 			// only label pods needs to be watched
 			for {
-				podList, err := client.CoreV1().Pods(chaosJob.Config["APP_NAMESPACE"]).List(context.TODO(), metaV1.ListOptions{
+				targets, err := client.CoreV1().Pods(chaosJob.Config["APP_NAMESPACE"]).List(context.TODO(), metaV1.ListOptions{
 					LabelSelector: chaosJob.Config["APP_LABEL"],
 				})
 				if err != nil {
@@ -178,54 +178,72 @@ func (chaosJob *ChaosJob) Run(jobStatusId uint) {
 					statusChan <- map[uint]ChaosJob{jobStatusId: *chaosJob}
 					return
 				}
-				// detecting new pods
-				runningPods := filterPods(pods, podList.Items)
-				var newPods []coreV1.Pod
-				if percentage == 0 {
-					newPods = pods[:1]
-				} else {
-					newPods = pods[:len(podList.Items)*percentage/100]
+				var chaosPods []coreV1.Pod
+				runningChaosPods, err := client.CoreV1().Pods(chaosJob.Config["APP_NAMESPACE"]).List(context.TODO(), metaV1.ListOptions{
+					LabelSelector: fmt.Sprintf("chaos.job.id=%v", jobStatusId),
+					FieldSelector: "status.phase=Running",
+				})
+				if err != nil {
+					chaosJob.Status = FailedStatus
+					chaosJob.FailedReason = err.Error()
+					statusChan <- map[uint]ChaosJob{jobStatusId: *chaosJob}
+					return
 				}
-				if len(runningPods) < len(newPods) {
-					//numNeeded := len(podList.Items[:len(podList.Items)*percentage/100]) - len(runningPods)
-					if len(runningPods) == 0 {
-						runningPods = newPods
-						for _, podObject := range runningPods {
-							if podObject.Status.Phase == coreV1.PodRunning {
-								// need to fetch the target node name
-								nodeName := podObject.Spec.NodeName
-								podName := podObject.Name
-								chaosJob.Config["APP_POD"] = podName
-								chaosJob.Config["CPU_CORES"] = "0"
-								chaosJob.Config["TOTAL_CHAOS_DURATION"] = fmt.Sprintf("%v", elapsed-time.Now().Second())
-								if chaosJob.Config["APP_CONTAINER"] == "" {
-									chaosJob.Config["APP_CONTAINER"] = podObject.Spec.Containers[0].Name
-								}
-								chaosJob.Config["FILESYSTEM_UTILIZATION_PERCENTAGE"] = "0"
-								chaosJob.Config["STRESS_TYPE"] = "pod-io-stress"
-								job = chaosJob.LitmusJobStress(jobStatusId, nodeName, podName)
-								_, err := client.BatchV1().Jobs(env.JobNamespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
-								if err != nil {
-									chaosJob.Status = FailedStatus
-									chaosJob.FailedReason = err.Error()
-									statusChan <- map[uint]ChaosJob{jobStatusId: *chaosJob}
-									return
-								}
-							}
+				pendingChaosPods, err := client.CoreV1().Pods(chaosJob.Config["APP_NAMESPACE"]).List(context.TODO(), metaV1.ListOptions{
+					LabelSelector: fmt.Sprintf("chaos.job.id=%v", jobStatusId),
+					FieldSelector: "status.phase=Pending",
+				})
+				if err != nil {
+					chaosJob.Status = FailedStatus
+					chaosJob.FailedReason = err.Error()
+					statusChan <- map[uint]ChaosJob{jobStatusId: *chaosJob}
+					return
+				}
+				chaosPods = append(chaosPods, runningChaosPods.Items...)
+				chaosPods = append(chaosPods, pendingChaosPods.Items...)
+
+				var pods []coreV1.Pod
+				if len(chaosPods) == 0 {
+					if percentage == 0 {
+						pods = targets.Items[:1]
+					} else {
+						pods = targets.Items[:len(targets.Items)*percentage/100]
+					}
+				} else {
+					// todo recalculate the pods
+				}
+				for _, podObject := range pods {
+					if podObject.Status.Phase == coreV1.PodRunning {
+						// need to fetch the target node name
+						nodeName := podObject.Spec.NodeName
+						podName := podObject.Name
+						chaosJob.Config["APP_POD"] = podName
+						chaosJob.Config["CPU_CORES"] = "0"
+						if chaosJob.Config["APP_CONTAINER"] == "" {
+							chaosJob.Config["APP_CONTAINER"] = podObject.Spec.Containers[0].Name
+						}
+						chaosJob.Config["TOTAL_CHAOS_DURATION"] = fmt.Sprintf("%v", elapsed-int(time.Now().Unix()))
+						chaosJob.Config["FILESYSTEM_UTILIZATION_PERCENTAGE"] = "0"
+						chaosJob.Config["STRESS_TYPE"] = "pod-io-stress"
+						job = chaosJob.LitmusJobStress(jobStatusId, nodeName, podName)
+						_, err := client.BatchV1().Jobs(env.JobNamespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
+						if err != nil {
+							chaosJob.Status = FailedStatus
+							chaosJob.FailedReason = err.Error()
+							statusChan <- map[uint]ChaosJob{jobStatusId: *chaosJob}
+							return
 						}
 					}
 				}
+
 				// stop monitoring if time elapsed
-				if elapsed < time.Now().Second() {
+				if elapsed < int(time.Now().Unix()) {
+					// todo cleanup the chaos pods here
 					break
 				}
 				time.Sleep(time.Second)
 			}
 			// check the chaos pods status now
-
-			// todo watch for the new pods and schedule dynamically
-			// todo need to be done within a goroutine
-			// todo the time of the duration need to be calculated according to the current time
 		}()
 	}
 }
