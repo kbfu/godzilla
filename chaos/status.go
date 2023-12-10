@@ -11,8 +11,8 @@ type JobStatus string
 
 // pending -> running -> success -> failed
 //
-//						 \-> failed
-//	                  \-> unknown
+//				     \-> failed
+//	                 \-> unknown
 const (
 	PendingStatus JobStatus = "pending"
 	RunningStatus JobStatus = "running"

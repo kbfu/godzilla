@@ -1,18 +1,8 @@
 env:
-  TOTAL_CHAOS_DURATION: '30'
-  PODS_AFFECTED_PERC: ''
-  SEQUENCE: parallel
-  APP_LABEL: ''
-  ANNOTATION_KEY: litmuschaos.io/chaos
-  TERMINATION_GRACE_PERIOD_SECONDS: '0'
-  RAMP_TIME: ''
-  STATUS_CHECK_TIMEOUT: '360'
-  STATUS_CHECK_DELAY: '2'
-  JOB_CLEANUP_POLICY: ''
-  APP_NAMESPACE: ''
-  CHAOS_INTERVAL: '10'
-  LIB: litmus
-  TARGET_PODS: ''
-  ANNOTATION_CHECK: 'false'
-  FORCE: 'false'
-  NODE_LABEL: ''
+  APP_CONTAINER: '' # 可以传入默认第一个容器的名字，参数化
+  CONTAINER_RUNTIME: containerd # 参数化, containerd, docker, crio
+  SOCKET_PATH: /var/run/containerd/containerd.sock # 参数化
+  FILESYSTEM_UTILIZATION_PERCENTAGE: '0'
+  FILESYSTEM_UTILIZATION_BYTES: '40' # 参数化
+  NUMBER_OF_WORKERS: '4' # 参数化
+  VOLUME_MOUNT_PATH: '/' # 参数化

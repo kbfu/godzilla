@@ -1,2 +1,11 @@
 image: wxt432/chaos-go-runner:latest
 serviceAccountName: chaos-admin
+env:
+  TOTAL_CHAOS_DURATION: '30'
+  PODS_AFFECTED_PERC: ''
+  APP_NAMESPACE: ''
+  APP_LABEL: ''
+  TARGET_PODS: ''
+  STATUS_CHECK_TIMEOUT: '360'
+  STATUS_CHECK_DELAY: '2'
+  TERMINATION_GRACE_PERIOD_SECONDS: '0'
