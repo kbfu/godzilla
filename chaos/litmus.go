@@ -2,6 +2,7 @@ package chaos
 
 import (
 	"fmt"
+	"godzilla/env"
 	"godzilla/types"
 	"godzilla/utils"
 	batchV1 "k8s.io/api/batch/v1"
@@ -32,10 +33,11 @@ func (chaosJob *ChaosJob) LitmusJob(jobStatusId uint) batchV1.Job {
 	job := batchV1.Job{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      jobName,
-			Namespace: chaosJob.Namespace,
+			Namespace: env.JobNamespace,
 			Labels: map[string]string{
-				"chaos.job":    "true",
-				"chaos.job.id": fmt.Sprintf("%v", jobStatusId),
+				"chaos.job":      "true",
+				"chaos.job.id":   fmt.Sprintf("%v", jobStatusId),
+				"chaos.job.name": chaosJob.Name,
 			},
 		},
 		Spec: batchV1.JobSpec{
@@ -43,8 +45,9 @@ func (chaosJob *ChaosJob) LitmusJob(jobStatusId uint) batchV1.Job {
 			Template: coreV1.PodTemplateSpec{
 				ObjectMeta: metaV1.ObjectMeta{
 					Labels: map[string]string{
-						"chaos.job":    "true",
-						"chaos.job.id": fmt.Sprintf("%v", jobStatusId),
+						"chaos.job":      "true",
+						"chaos.job.id":   fmt.Sprintf("%v", jobStatusId),
+						"chaos.job.name": chaosJob.Name,
 					},
 				},
 				Spec: coreV1.PodSpec{

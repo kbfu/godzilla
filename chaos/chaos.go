@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"godzilla/chaos/litmus/pod"
 	"godzilla/db"
+	"godzilla/env"
 	"godzilla/types"
 	"gopkg.in/yaml.v3"
 	batchV1 "k8s.io/api/batch/v1"
@@ -21,7 +22,6 @@ import (
 type ChaosJob struct {
 	Name               string            `yaml:"name"`
 	Type               string            `yaml:"type"`
-	Namespace          string            `yaml:"namespace"`
 	Config             map[string]string `yaml:"config"`
 	Image              string            `yaml:"image"`
 	ServiceAccountName string            `yaml:"serviceAccountName"`
@@ -34,7 +34,7 @@ func (chaosJob *ChaosJob) Run(jobStatusId uint) error {
 	switch chaosJob.Type {
 	case string(types.LitmusPodDelete):
 		job = chaosJob.LitmusJob(jobStatusId)
-		_, err := client.BatchV1().Jobs(chaosJob.Namespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
+		_, err := client.BatchV1().Jobs(env.JobNamespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -71,14 +71,14 @@ func (chaosJob *ChaosJob) cleanJob(jobStatusId uint) error {
 	logrus.Infof("Cleaning up the chaos job, status id: %v", jobStatusId)
 	policy := metaV1.DeletePropagationForeground
 	// get name
-	jobList, err := client.BatchV1().Jobs(chaosJob.Namespace).List(context.TODO(), metaV1.ListOptions{
+	jobList, err := client.BatchV1().Jobs(env.JobNamespace).List(context.TODO(), metaV1.ListOptions{
 		LabelSelector: fmt.Sprintf("chaos.job.id=%v", jobStatusId),
 	})
 	if err != nil {
 		return err
 	}
 	for _, j := range jobList.Items {
-		err := client.BatchV1().Jobs(chaosJob.Namespace).Delete(context.TODO(), j.Name, metaV1.DeleteOptions{
+		err := client.BatchV1().Jobs(env.JobNamespace).Delete(context.TODO(), j.Name, metaV1.DeleteOptions{
 			PropagationPolicy: &policy,
 		})
 		if err != nil {
@@ -189,9 +189,9 @@ func CreateChaos(c *gin.Context) {
 					j.Status = RunningStatus
 					statusChan <- map[uint]ChaosJob{jobStatusId: j}
 					// watch for the status
-					kubePod := client.CoreV1().Pods(j.Namespace)
+					kubePod := client.CoreV1().Pods(env.JobNamespace)
 					w, err := kubePod.Watch(context.TODO(), metaV1.ListOptions{
-						LabelSelector: fmt.Sprintf("chaos.job.id=%v", jobStatusId),
+						LabelSelector: fmt.Sprintf("chaos.job.id=%v,chaos.job.name=%s", jobStatusId, j.Name),
 					})
 					if err != nil {
 						logrus.Errorf("job %s status watch failed, reason: %s", j.Name, err.Error())

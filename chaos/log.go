@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"godzilla/env"
 	"io"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +16,7 @@ import (
 )
 
 func (chaosJob *ChaosJob) fetchChaosLogs(actualName string) {
-	pod := client.CoreV1().Pods(chaosJob.Namespace)
+	pod := client.CoreV1().Pods(env.JobNamespace)
 	w, err := pod.Watch(context.TODO(), metaV1.ListOptions{
 		LabelSelector: "chaos.job=true",
 	})

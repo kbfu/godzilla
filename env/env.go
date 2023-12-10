@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	JobNamespace          = populateEnv("JOB_NAMESPACE", "test-chaos").(string)
 	LocalDebug            = populateEnv("LOCAL_DEBUG", false).(bool)
 	LogHouse              = populateEnv("LOG_HOUSE", "github-k8s-runner").(string)
 	GithubWorkerName      = populateEnv("ACTIONS_RUNNER_POD_NAME", "").(string)
