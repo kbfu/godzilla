@@ -19,7 +19,7 @@ spec:
       serviceAccountName: chaos-admin
       containers:
         - command:
-            - sh
+            - ./godzilla
           image: wxt432/godzilla-chaos:latest
           stdin: true
           tty: true
