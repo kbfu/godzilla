@@ -12,7 +12,7 @@ var Db *gorm.DB
 
 func Open() {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s", env.MysqlUser, env.MysqlPassword, env.MysqlHost,
-		env.MysqlPort, env.MysqlDatabase, "utf8mb4&parseTime=True&loc=Asia%2FShanghai")
+		env.MysqlPort, env.MysqlDatabase, "utf8mb4&parseTime=True")
 	conn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,

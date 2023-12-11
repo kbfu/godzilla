@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: godzilla
+  name: godzilla
+  namespace: test-chaos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: godzilla
+  template:
+    metadata:
+      labels:
+        app: godzilla
+    spec:
+      containers:
+        - command:
+            - ./godzilla
+          image: wxt432/godzilla-chaos:latest
+          imagePullPolicy: Always
+          name: godzilla
+          env:
+            - name: JOB_NAMESPACE
+              value: test-chaos
+            - name: MYSQL_HOST
+              value: mysql
