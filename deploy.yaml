@@ -15,14 +15,18 @@ spec:
       labels:
         app: godzilla
     spec:
+      dnsPolicy: ClusterFirst
+      serviceAccountName: chaos-admin
       containers:
         - command:
-            - ./godzilla
+            - sh
           image: wxt432/godzilla-chaos:latest
+          stdin: true
+          tty: true
           imagePullPolicy: Always
           name: godzilla
           env:
             - name: JOB_NAMESPACE
               value: test-chaos
-            - name: MYSQL_HOST
+            - name: GODZILLA_MYSQL_HOST
               value: mysql

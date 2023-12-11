@@ -13,11 +13,11 @@ var (
 	GithubWorkerName      = populateEnv("ACTIONS_RUNNER_POD_NAME", "").(string)
 	GithubWorkDir         = populateEnv("GITHUB_WORKSPACE", "").(string)
 	GithubWorkerNamespace = populateEnv("ACTIONS_RUNNER_NAMESPACE", "cicd").(string)
-	MysqlUser             = populateEnv("MYSQL_USER", "root").(string)
-	MysqlPassword         = populateEnv("MYSQL_PASSWORD", "root").(string)
-	MysqlHost             = populateEnv("MYSQL_HOST", "127.0.0.1").(string)
-	MysqlPort             = populateEnv("MYSQL_PORT", "3306").(string)
-	MysqlDatabase         = populateEnv("MYSQL_DATABASE", "godzilla").(string)
+	MysqlUser             = populateEnv("GODZILLA_MYSQL_USER", "root").(string)
+	MysqlPassword         = populateEnv("GODZILLA_MYSQL_PASSWORD", "root").(string)
+	MysqlHost             = populateEnv("GODZILLA_MYSQL_HOST", "127.0.0.1").(string)
+	MysqlPort             = populateEnv("GODZILLA_MYSQL_PORT", "3306").(string)
+	MysqlDatabase         = populateEnv("GODZILLA_MYSQL_DATABASE", "godzilla").(string)
 )
 
 func populateEnv(name string, defaultValue any) any {
