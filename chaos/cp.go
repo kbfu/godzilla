@@ -12,7 +12,7 @@ import (
 func copyIntoPod(podName string, namespace string, container string, srcPath string, dstPath string) {
 	localFile, err := os.Open(srcPath)
 	if err != nil {
-		logrus.Errorf("Error opening local file: %s", err)
+		logrus.Errorf("error opening local file: %s", err)
 		return
 	}
 	defer localFile.Close()
@@ -35,7 +35,7 @@ func copyIntoPod(podName string, namespace string, container string, srcPath str
 
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
-		logrus.Errorf("Error creating executor: %s", err)
+		logrus.Errorf("error creating executor: %s", err)
 		return
 	}
 
@@ -47,9 +47,9 @@ func copyIntoPod(podName string, namespace string, container string, srcPath str
 		Tty:    false,
 	})
 	if err != nil {
-		logrus.Errorf("Error streaming: %s", err)
+		logrus.Errorf("error streaming: %s", err)
 		return
 	}
 
-	logrus.Infof("File %s copied successfully", srcPath)
+	logrus.Infof("file %s copied successfully", srcPath)
 }

@@ -17,7 +17,7 @@ import (
 
 func (chaosJob *ChaosJob) fetchChaosLogs(actualName string) {
 	pod := client.CoreV1().Pods(env.JobNamespace)
-	w, err := pod.Watch(context.TODO(), metaV1.ListOptions{
+	w, err := client.CoreV1().Pods(env.JobNamespace).Watch(context.TODO(), metaV1.ListOptions{
 		LabelSelector: "chaos.job=true",
 	})
 	if err != nil {
@@ -25,10 +25,10 @@ func (chaosJob *ChaosJob) fetchChaosLogs(actualName string) {
 		return
 	}
 
-	for c := range w.ResultChan() {
-		if c.Object != nil && c.Type != watch.Error && c.Type != watch.Deleted {
-			if reflect.ValueOf(c.Object).Type().Elem().Name() == "Pod" {
-				podObject := c.Object.(*coreV1.Pod)
+	for event := range w.ResultChan() {
+		if event.Object != nil && event.Type != watch.Error && event.Type != watch.Deleted {
+			if reflect.ValueOf(event.Object).Type().Elem().Name() == "Pod" {
+				podObject := event.Object.(*coreV1.Pod)
 				if strings.Contains(podObject.Name, actualName) {
 					for _, cs := range podObject.Status.ContainerStatuses {
 						if cs.State.Waiting != nil {
@@ -40,6 +40,7 @@ func (chaosJob *ChaosJob) fetchChaosLogs(actualName string) {
 						reader, err := logs.Stream(context.TODO())
 						if err != nil {
 							logrus.Warning(err)
+							w.Stop()
 							return
 						}
 
@@ -69,6 +70,7 @@ func (chaosJob *ChaosJob) fetchChaosLogs(actualName string) {
 							_, err = f.WriteAt(buf[:numBytes], int64(offset))
 							if err != nil {
 								logrus.Error(err)
+								w.Stop()
 								return
 							}
 							offset += numBytes

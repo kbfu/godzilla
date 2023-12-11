@@ -25,7 +25,7 @@ func populateEnv(name string, defaultValue any) any {
 		if os.Getenv(name) != "" {
 			val, err := strconv.ParseBool(os.Getenv("LOCAL_DEBUG"))
 			if err != nil {
-				logrus.Fatalf("Parse LOCAL_DEBUG error, reason, %s", err.Error())
+				logrus.Fatalf("parse LOCAL_DEBUG error, reason, %s", err.Error())
 			}
 			return val
 		}

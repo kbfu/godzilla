@@ -41,20 +41,20 @@ func fetchConfig() {
 	if env.LocalDebug {
 		config, err = clientcmd.BuildConfigFromFlags("", homedir.HomeDir()+"/.kube/config")
 		if err != nil {
-			logrus.Fatalf("Get config error, reason: %s", err.Error())
+			logrus.Fatalf("get config error, reason: %s", err.Error())
 		}
 		client, err = kubernetes.NewForConfig(config)
 		if err != nil {
-			logrus.Fatalf("Get client set error, reason: %s", err.Error())
+			logrus.Fatalf("get client set error, reason: %s", err.Error())
 		}
 	} else {
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			logrus.Fatalf("Get in cluster config error, reason: %s", err.Error())
+			logrus.Fatalf("get in cluster config error, reason: %s", err.Error())
 		}
 		client, err = kubernetes.NewForConfig(config)
 		if err != nil {
-			logrus.Fatalf("Get in cluster client set error, reason: %s", err.Error())
+			logrus.Fatalf("get in cluster client set error, reason: %s", err.Error())
 		}
 	}
 

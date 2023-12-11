@@ -26,11 +26,11 @@ func PopulateDefaultDeletePod() (config PodDelete) {
 	)
 	err := yaml.Unmarshal(common, &commonConfig)
 	if err != nil {
-		logrus.Fatalf("Unmarshal default pod common yaml file failed, reason: %s", err.Error())
+		logrus.Fatalf("unmarshal default pod common yaml file failed, reason: %s", err.Error())
 	}
 	err = yaml.Unmarshal(deletePod, &deleteConfig)
 	if err != nil {
-		logrus.Fatalf("Unmarshal pod delete yaml file failed, reason: %s", err.Error())
+		logrus.Fatalf("unmarshal pod delete yaml file failed, reason: %s", err.Error())
 	}
 	config = commonConfig
 	if config.Env == nil {
