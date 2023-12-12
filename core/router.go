@@ -10,9 +10,9 @@ func SetupRouter() *gin.Engine {
 	router := gin.Default()
 	pprof.Register(router)
 
-	//repo := router.Group("/repo")
 	chaosGrp := router.Group("/chaos")
 
 	chaosGrp.POST("/create", chaos.CreateChaos)
+	chaosGrp.GET("/get", chaos.GetChaos)
 	return router
 }

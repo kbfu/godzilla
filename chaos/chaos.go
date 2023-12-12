@@ -175,3 +175,14 @@ func CreateChaos(c *gin.Context) {
 	}()
 	c.JSON(http.StatusCreated, NormalResponse(Ok, ""))
 }
+
+func GetChaos(c *gin.Context) {
+	scenario := c.Query("scenario")
+	s := db.Scenario{Name: scenario}
+	err := s.GetByName()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(MySqlError, err))
+		return
+	}
+	c.JSON(http.StatusOK, NormalResponse(Ok, s.Definition))
+}
