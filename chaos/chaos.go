@@ -184,5 +184,9 @@ func GetChaos(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(MySqlError, err))
 		return
 	}
+	if s.Definition == "" {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse(ScenarioNotFound, nil))
+		return
+	}
 	c.JSON(http.StatusOK, NormalResponse(Ok, s.Definition))
 }
