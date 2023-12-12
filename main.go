@@ -24,9 +24,4 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-
-	//err := kube.CreateChaos()
-	//if err != nil && err != io.EOF {
-	//	logrus.Fatalf("Create chaos failed, reason %s", err.Error())
-	//}
 }
