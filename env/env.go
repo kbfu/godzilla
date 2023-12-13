@@ -28,17 +28,14 @@ import (
 )
 
 var (
-	JobNamespace          = populateEnv("JOB_NAMESPACE", "test-chaos").(string)
-	LocalDebug            = populateEnv("LOCAL_DEBUG", false).(bool)
-	LogHouse              = populateEnv("LOG_HOUSE", "github-k8s-runner").(string)
-	GithubWorkerName      = populateEnv("ACTIONS_RUNNER_POD_NAME", "").(string)
-	GithubWorkDir         = populateEnv("GITHUB_WORKSPACE", "").(string)
-	GithubWorkerNamespace = populateEnv("ACTIONS_RUNNER_NAMESPACE", "cicd").(string)
-	MysqlUser             = populateEnv("GODZILLA_MYSQL_USER", "root").(string)
-	MysqlPassword         = populateEnv("GODZILLA_MYSQL_PASSWORD", "root").(string)
-	MysqlHost             = populateEnv("GODZILLA_MYSQL_HOST", "127.0.0.1").(string)
-	MysqlPort             = populateEnv("GODZILLA_MYSQL_PORT", "3306").(string)
-	MysqlDatabase         = populateEnv("GODZILLA_MYSQL_DATABASE", "godzilla").(string)
+	JobNamespace  = populateEnv("JOB_NAMESPACE", "test-chaos").(string)
+	LocalDebug    = populateEnv("LOCAL_DEBUG", false).(bool)
+	LogHouse      = populateEnv("LOG_HOUSE", "github-k8s-runner").(string)
+	MysqlUser     = populateEnv("GODZILLA_MYSQL_USER", "root").(string)
+	MysqlPassword = populateEnv("GODZILLA_MYSQL_PASSWORD", "root").(string)
+	MysqlHost     = populateEnv("GODZILLA_MYSQL_HOST", "127.0.0.1").(string)
+	MysqlPort     = populateEnv("GODZILLA_MYSQL_PORT", "3306").(string)
+	MysqlDatabase = populateEnv("GODZILLA_MYSQL_DATABASE", "godzilla").(string)
 )
 
 func populateEnv(name string, defaultValue any) any {
@@ -63,7 +60,4 @@ func ParseVars() {
 	logrus.Info("vars for current run")
 	logrus.Infof("LOCAL_DEBUG: %v", LocalDebug)
 	logrus.Infof("LOG_HOUSE %s", LogHouse)
-	logrus.Infof("ACTIONS_RUNNER_POD_NAME %s", GithubWorkerName)
-	logrus.Infof("GITHUB_WORKSPACE %s", GithubWorkDir)
-	logrus.Infof("ACTIONS_RUNNER_NAMESPACE %s", GithubWorkerNamespace)
 }
