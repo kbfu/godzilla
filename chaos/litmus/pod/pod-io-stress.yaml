@@ -1,8 +1,8 @@
 env:
-  APP_CONTAINER: '' # 可以传入默认第一个容器的名字，参数化
-  CONTAINER_RUNTIME: containerd # 参数化, containerd, docker, crio
-  SOCKET_PATH: /var/run/containerd/containerd.sock # 参数化
+  APP_CONTAINER: ''
+  CONTAINER_RUNTIME: docker
+  SOCKET_PATH: /var/run/docker.sock
   FILESYSTEM_UTILIZATION_PERCENTAGE: '0'
-  FILESYSTEM_UTILIZATION_BYTES: '40' # 参数化
-  NUMBER_OF_WORKERS: '4' # 参数化
-  VOLUME_MOUNT_PATH: '/' # 参数化
+  FILESYSTEM_UTILIZATION_BYTES: '40'
+  NUMBER_OF_WORKERS: '4'
+  VOLUME_MOUNT_PATH: '/'

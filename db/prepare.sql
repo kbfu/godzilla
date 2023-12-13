@@ -16,7 +16,7 @@ create table godzilla.job_status
 (
     id          int auto_increment
         primary key,
-    scenario_id int                                 not null,
+    scenario_id int null,
     status      longtext                            not null,
     created_at  timestamp default CURRENT_TIMESTAMP null,
     updated_at  timestamp default CURRENT_TIMESTAMP not null,

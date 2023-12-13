@@ -203,6 +203,9 @@ func (chaosJob *ChaosJob) LitmusJobStress(jobStatusId uint, nodeName, podName st
 func runLitmusCommon(chaosJob *ChaosJob, jobStatusId uint) {
 	job := chaosJob.LitmusJob(jobStatusId)
 	logrus.Infof("creating job %s, run id %v", chaosJob.Name, jobStatusId)
+	start := time.Now().Unix()
+	duration, _ := strconv.Atoi(chaosJob.Config["TOTAL_CHAOS_DURATION"])
+	elapsed := int(start) + duration
 	_, err := client.BatchV1().Jobs(env.JobNamespace).Create(context.TODO(), &job, metaV1.CreateOptions{})
 	if err != nil {
 		logrus.Errorf("job %s run failed, reason: %s", chaosJob.Name, err.Error())
@@ -256,6 +259,17 @@ func runLitmusCommon(chaosJob *ChaosJob, jobStatusId uint) {
 					statusChan <- map[uint]ChaosJob{jobStatusId: *chaosJob}
 					w.Stop()
 					break
+				} else {
+					// timeout, mark to failed status
+					if elapsed+120 < int(time.Now().Unix()) {
+						chaosJob.Status = FailedStatus
+						chaosJob.FailedReason = "chaos job pod not started"
+						statusChan <- map[uint]ChaosJob{jobStatusId: *chaosJob}
+						logrus.Infof("job %s failed, run id %v, starting cleanup", chaosJob.Name, jobStatusId)
+						chaosJob.cleanJob(jobStatusId)
+						w.Stop()
+						break
+					}
 				}
 			}
 		}
@@ -397,7 +411,7 @@ func runLitmusStress(chaosJob *ChaosJob, jobStatusId uint) {
 											podObject.Name, chaosJob.Name, jobStatusId)
 										for _, p := range pods {
 											if p.Name == podObject.Name {
-												if elapsed-int(time.Now().Unix()) > 0 {
+												if elapsed > int(time.Now().Unix()) {
 													logrus.Infof("scheduling new chaos job for pod %s, job %s, run id %v",
 														podObject.Name, chaosJob.Name, jobStatusId)
 													nodeName := podObject.Spec.NodeName
@@ -439,7 +453,7 @@ func runLitmusStress(chaosJob *ChaosJob, jobStatusId uint) {
 											} else {
 												expected = len(allPods) * percentage / 100
 											}
-											if expected > len(pods) && elapsed-int(time.Now().Unix()) > 0 {
+											if expected > len(pods) && elapsed > int(time.Now().Unix()) {
 												logrus.Infof("need to add a new job for the increment, scheduling new chaos job for pod %s, job %s, run id %v",
 													podObject.Name, chaosJob.Name, jobStatusId)
 												// need to scale up

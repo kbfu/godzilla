@@ -105,3 +105,12 @@ func initStatus(chaosJobs [][]ChaosJob, scenarioId uint) (statusId uint, err err
 	err = jobStatus.Add()
 	return jobStatus.Id, err
 }
+
+func initStatusOne(chaosJobs [][]ChaosJob) (statusId uint, err error) {
+	jobs, _ := yaml.Marshal(chaosJobs)
+	jobStatus := db.JobStatus{
+		Status: string(jobs),
+	}
+	err = jobStatus.Add()
+	return jobStatus.Id, err
+}

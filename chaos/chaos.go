@@ -38,8 +38,8 @@ import (
 )
 
 type ChaosJob struct {
-	Name               string            `yaml:"name"`
-	Type               string            `yaml:"type"`
+	Name               string            `yaml:"name" binding:"required"`
+	Type               string            `yaml:"type" binding:"required"`
 	Config             map[string]string `yaml:"config"`
 	Image              string            `yaml:"image"`
 	ServiceAccountName string            `yaml:"serviceAccountName"`
@@ -132,6 +132,29 @@ func overrideConfig(chaosJobs [][]ChaosJob, body ChaosBody) {
 	}
 }
 
+func overrideConfigOne(chaosJobs [][]ChaosJob) {
+	for i := range chaosJobs {
+		for j := range chaosJobs[i] {
+			config := pod.PopulateDefaultDeletePod()
+			// override default config
+			for k, v := range config.Env {
+				_, ok := chaosJobs[i][j].Config[k]
+				if !ok {
+					chaosJobs[i][j].Config[k] = v
+				}
+			}
+
+			if chaosJobs[i][j].Image == "" {
+				chaosJobs[i][j].Image = config.Image
+			}
+			if chaosJobs[i][j].ServiceAccountName == "" {
+				chaosJobs[i][j].ServiceAccountName = config.ServiceAccountName
+			}
+			chaosJobs[i][j].Status = PendingStatus
+		}
+	}
+}
+
 func CreateChaos(c *gin.Context) {
 	var body ChaosBody
 	err := c.BindJSON(&body)
@@ -194,7 +217,7 @@ func CreateChaos(c *gin.Context) {
 			wg.Wait()
 		}
 	}()
-	c.JSON(http.StatusCreated, NormalResponse(Ok, ""))
+	c.JSON(http.StatusCreated, NormalResponse(Ok, jobStatusId))
 }
 
 func GetChaos(c *gin.Context) {
@@ -210,4 +233,50 @@ func GetChaos(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, NormalResponse(Ok, s.Definition))
+}
+
+func CreateChaosOne(c *gin.Context) {
+	// run all inside scenarios
+	var (
+		chaosJobs [][]ChaosJob
+		wg        sync.WaitGroup
+	)
+	err := c.BindJSON(&chaosJobs)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse(RequestError, err))
+		return
+	}
+
+	overrideConfigOne(chaosJobs)
+
+	// pre-check before run
+	err = preCheck(chaosJobs)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			ErrorResponse(InvalidScenario, err))
+		return
+	}
+
+	jobStatusId, err := initStatusOne(chaosJobs)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse(MySqlSaveError, err))
+		return
+	}
+	logrus.Infof("current run id is %v", jobStatusId)
+
+	go func() {
+		for _, parallelJobs := range chaosJobs {
+			for _, j := range parallelJobs {
+				wg.Add(1)
+				j := j
+				go func() {
+					logrus.Infof("running  id: %v, job %s", jobStatusId, j.Name)
+					j.Run(jobStatusId)
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+		}
+	}()
+	c.JSON(http.StatusCreated, NormalResponse(Ok, jobStatusId))
 }

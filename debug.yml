@@ -1,0 +1,28 @@
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
+   labels:
+     app: debug
+   name: debug
+   namespace: test-chaos
+ spec:
+   replicas: 1
+   selector:
+     matchLabels:
+       app: debug
+   template:
+     metadata:
+       labels:
+         app: debug
+     spec:
+       containers:
+       - command:
+         - /bin/sh
+         tty: true
+         stdin: true
+         image: alpine:3.18
+         name: alpine
+         resources:
+           limits:
+             memory: 128Mi
+             cpu: 100m

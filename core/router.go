@@ -34,6 +34,7 @@ func SetupRouter() *gin.Engine {
 	chaosGrp := router.Group("/chaos")
 
 	chaosGrp.POST("/create", chaos.CreateChaos)
+	chaosGrp.POST("/create/one", chaos.CreateChaosOne)
 	chaosGrp.GET("/get", chaos.GetChaos)
 	return router
 }
